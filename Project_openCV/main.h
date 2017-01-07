@@ -33,6 +33,7 @@ typedef struct controls {
 
 	bool mouseDrag = false;
 	bool selected = false;
+	bool moving = false;
 	Point init_point;
 	Point current_point;
 	Rect choosen_zone;
@@ -46,4 +47,4 @@ vector<Vec3f> detect_circles(Mat img, int param2 = 50);
 Vec3f detect_max_circle(Mat img, Controls_val* ctrl);
 void filter_type_callb(int v, void*);
 void mouse_callb(int ev, int x, int y, int flags, void* p);
-void color_filter_calibrate(Mat frame, Controls_val*);
+void color_filter_calibrate(Mat frameHSV, Mat frame, Controls_val* c);

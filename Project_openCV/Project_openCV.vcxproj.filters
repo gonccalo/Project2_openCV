@@ -24,9 +24,13 @@
   </ItemGroup>
   <ItemGroup>
     <Media Include="video_test.mp4" />
+    <Media Include="video_test2.mp4" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TrakingBuffer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

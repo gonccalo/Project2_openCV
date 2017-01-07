@@ -5,7 +5,8 @@ using namespace std;
 class TrakingBuffer {
 public:
 	bool put(Point *p);
-	Point* get(int index);
+	Point* get(uint index);
+	Mat toMat();
 
 private:
 	Point *p[32];

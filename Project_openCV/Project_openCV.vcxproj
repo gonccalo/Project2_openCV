@@ -153,8 +153,10 @@
   </ItemGroup>
   <ItemGroup>
     <Media Include="video_test.mp4" />
+    <Media Include="video_test2.mp4" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="main.h" />
     <ClInclude Include="TrakingBuffer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -218,13 +218,12 @@ void color_filter_calibrate(Mat frameHSV, Mat frame, Controls_val * c)
 /* stackoverflow.com/questions/9860667/writing-robust-color-and-size-invariant-circle-detection-with-opencv-based-on */
 vector<Vec3f> detect_circles(Mat img, int param2) {
 	vector<Vec3f> result;
-	int min_dist = 300;
 	if (img.channels() == 1) {
 		GaussianBlur(img, img, Size(9, 9), 2, 2);
 		Canny(img, img, 5, 150);
 		GaussianBlur(img, img, Size(9, 9), 2, 2);
 		//Canny(img, img, 5, 70, 3);
-		HoughCircles(img, result, HOUGH_GRADIENT, 2, min_dist, 2, param2, 30, img.rows / 2);
+		HoughCircles(img, result, HOUGH_GRADIENT, 2, MIN_DIST, 2, param2, MIN_RADIUS, img.rows / 2);
 		return result;
 	}
 	Mat rgb[] = {
@@ -245,7 +244,7 @@ vector<Vec3f> detect_circles(Mat img, int param2) {
 	rgb[0] = rgb[0] & rgb[2];
 	Canny(rgb[0], rgb[0], 5, 70);
 	GaussianBlur(rgb[0], rgb[0], Size(9, 9), 2, 2);
-	HoughCircles(rgb[0], result, HOUGH_GRADIENT, 2, min_dist, 2, param2, 20,img.rows/3);
+	HoughCircles(rgb[0], result, HOUGH_GRADIENT, 2, MIN_DIST, 2, param2, MIN_RADIUS, MAX_RADIUS);
 	putText(img, "Number of circles: " + to_string(result.size()), Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
 	//imshow("TEST", proc);
 	return result;

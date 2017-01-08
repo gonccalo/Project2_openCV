@@ -23,6 +23,10 @@ using namespace std;
 #define MAX_OBJECTS  10
 #define MIN_AREA    400  //20*20
 
+#define MIN_RADIUS   20
+#define MAX_RADIUS   img.rows/3
+#define MIN_DIST    300 
+
 typedef struct controls {
 	int filter_type = 0;
 

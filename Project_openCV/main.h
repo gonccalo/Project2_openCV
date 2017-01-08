@@ -10,12 +10,18 @@ using namespace cv;
 using namespace std;
 
 #define CONTROL_WINDOW "Control"
-
+#define MAIN_WINDOW    "Object tracking"
+#define CAL_WINDOW     "Calibration window"
 #define BY_COLOR  0
 #define BY_SHAPE  1
 #define BY_BOTH   2
 #define ESC      27
 #define SPACEBAR 32
+
+#define CAMERA							//comentar esta linha para usar um ficheiro de video em vez da camera
+#define VIDEO_FILE "video_test2.mp4"
+#define MAX_OBJECTS  10
+#define MIN_AREA    400  //20*20
 
 typedef struct controls {
 	int filter_type = 0;

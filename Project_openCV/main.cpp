@@ -3,7 +3,12 @@
 int main(int argc, char** argv)
 {
 	VideoCapture cap; //capture the video from web cam
-	cap.open("video_test2.mp4");
+#ifdef CAMERA
+	cap.open(0);
+#else
+	cap.open(VIDEO_FILE);
+#endif // CAMERA
+	
 	if (!cap.isOpened())  // if not success, exit program
 	{
 		cout << "Cannot open the web cam" << endl;
@@ -17,8 +22,8 @@ int main(int argc, char** argv)
 	Mat imgOriginal;
 	Mat processed;
 	Mat new_img_hsv;
-	namedWindow("Video1", CV_WINDOW_AUTOSIZE);
-	setMouseCallback("Video1", mouse_callb, filter_controls);
+	namedWindow(MAIN_WINDOW, CV_WINDOW_AUTOSIZE);
+	setMouseCallback(MAIN_WINDOW, mouse_callb, filter_controls);
 
 	namedWindow(CONTROL_WINDOW, CV_WINDOW_NORMAL);
 	createTrackbar("Filter type", CONTROL_WINDOW, &filter_controls->filter_type, 2, filter_type_callb, filter_controls);
@@ -28,7 +33,6 @@ int main(int argc, char** argv)
 	cvtColor(pickedColor, pickedColor, CV_HSV2BGR);
 	imshow(CONTROL_WINDOW, pickedColor);
 	
-	
 	while (true)
 	{
 		if (!pause) {
@@ -37,19 +41,16 @@ int main(int argc, char** argv)
 				cap.set(CV_CAP_PROP_POS_FRAMES, 0);
 				continue;
 			}
-			processed = imgOriginal.clone();
-			cvtColor(processed, new_img_hsv, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
 		}
-		else {
-			processed = imgOriginal.clone();
-			cvtColor(processed, new_img_hsv, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
-			color_filter_calibrate(new_img_hsv, processed, filter_controls);
-		}
+		processed = imgOriginal.clone();
 		
 		switch (filter_controls->filter_type)
 		{
 		case BY_COLOR:
 		{
+			cvtColor(processed, new_img_hsv, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+			if(pause)
+				color_filter_calibrate(new_img_hsv, processed, filter_controls);
 			//filter colors
 			new_img_hsv = filter_color_objects(new_img_hsv, filter_controls);
 			//erosion and dilation operations
@@ -58,23 +59,29 @@ int main(int argc, char** argv)
 				break;
 
 			Point center = max_area(new_img_hsv, processed);
-			if (center.x != -1 && center.y != -1)
+			if (center.x != -1)
 			{
 				putText(processed, "Tracking Object", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
 				buff.put(&center);
 				int sumx = 0;
 				int sumy = 0;
-				for (int i = 0; i < 31; i++) {
-					Point* tmp = buff.get(i);
-					Point* tmp2 = buff.get(i + 1);
-					if (tmp == NULL || tmp2 == NULL)
+				Point* old = buff.get(0);
+				if (old == NULL) break;
+				for (int i = 1; i < 31; i++) {
+					Point* tmp2 = buff.get(i);
+					if (tmp2 == NULL)
 						break;
-					sumx += tmp->x - tmp2->x;
-					sumy += tmp->y - tmp2->y;
-					line(processed, *tmp2, *tmp, Scalar(0, 255, 0), (sqrt(32 / (i + 1)) * 2.5));
+					sumx += old->x - tmp2->x;
+					sumy += old->y - tmp2->y;
+					line(processed, *tmp2, *old, Scalar(0, 255, 0), (sqrt(32 / (i + 1)) * 2.5));
+					old = tmp2;
 				}
-				arrowedLine(processed, center, center + (Point(sumx / 32, sumy / 32) * 20), Scalar(255, 0, 0), 3);
+				arrowedLine(processed, center, center + (Point(sumx >> 5, sumy >> 5) * 20), Scalar(255, 0, 0), 3);
 			}
+			else {
+				buff.clear();
+			}
+			imshow(CAL_WINDOW, new_img_hsv);
 			break;
 		}
 		case BY_SHAPE:
@@ -86,6 +93,9 @@ int main(int argc, char** argv)
 		}
 		case BY_BOTH:
 		{
+			cvtColor(processed, new_img_hsv, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+			if (pause)
+				color_filter_calibrate(new_img_hsv, processed, filter_controls);
 			//filter colors
 			new_img_hsv = filter_color_objects(new_img_hsv, filter_controls);
 			//erosion and dilation operations
@@ -94,12 +104,12 @@ int main(int argc, char** argv)
 			Vec3f max_circle;
 			max_circle = detect_max_circle(new_img_hsv, filter_controls);
 			circle(processed, Point(max_circle[0], max_circle[1]), max_circle[2], Scalar(255, 0, 0), 2);
+			imshow(CAL_WINDOW, new_img_hsv);
 			break;
 		}
 		}
 
-		imshow("Video1", (Mat)processed); //show the original image
-		imshow("Threshold", new_img_hsv);
+		imshow(MAIN_WINDOW, processed); //show the original image
 
 		pressed_key = waitKey(10);
 		switch (pressed_key)
@@ -205,15 +215,14 @@ void color_filter_calibrate(Mat frameHSV, Mat frame, Controls_val * c)
 	}
 }
 
-
 /* stackoverflow.com/questions/9860667/writing-robust-color-and-size-invariant-circle-detection-with-opencv-based-on */
 vector<Vec3f> detect_circles(Mat img, int param2) {
 	vector<Vec3f> result;
 	int min_dist = 300;
 	if (img.channels() == 1) {
-		GaussianBlur(img, img, cv::Size(9, 9), 2, 2);
+		GaussianBlur(img, img, Size(9, 9), 2, 2);
 		Canny(img, img, 5, 150);
-		GaussianBlur(img, img, cv::Size(9, 9), 2, 2);
+		GaussianBlur(img, img, Size(9, 9), 2, 2);
 		//Canny(img, img, 5, 70, 3);
 		HoughCircles(img, result, HOUGH_GRADIENT, 2, min_dist, 2, param2, 30, img.rows / 2);
 		return result;
@@ -223,9 +232,8 @@ vector<Vec3f> detect_circles(Mat img, int param2) {
 		Mat(img.rows, img.cols, IPL_DEPTH_8U, 1),
 		Mat(img.rows, img.cols, IPL_DEPTH_8U, 1)
 	};
-	//Mat hsv_channels[3];
-	GaussianBlur(img, img, cv::Size(9, 9), 2, 2);
-	GaussianBlur(img, img, cv::Size(9, 9), 2, 2);
+	GaussianBlur(img, img, Size(9, 9), 2, 2);
+	GaussianBlur(img, img, Size(9, 9), 2, 2);
 	split(img, rgb);
 	adaptiveThreshold(rgb[0], rgb[0], 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 55, 7);
 	do_morph(rgb[0]);
@@ -236,7 +244,7 @@ vector<Vec3f> detect_circles(Mat img, int param2) {
 	rgb[0] = rgb[0] & rgb[1];
 	rgb[0] = rgb[0] & rgb[2];
 	Canny(rgb[0], rgb[0], 5, 70);
-	GaussianBlur(rgb[0], rgb[0], cv::Size(9, 9), 2, 2);
+	GaussianBlur(rgb[0], rgb[0], Size(9, 9), 2, 2);
 	HoughCircles(rgb[0], result, HOUGH_GRADIENT, 2, min_dist, 2, param2, 20,img.rows/3);
 	putText(img, "Number of circles: " + to_string(result.size()), Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
 	//imshow("TEST", proc);
@@ -259,8 +267,8 @@ Vec3f detect_max_circle(Mat img, Controls_val* ctrl) {
 }
 
 Point max_area(Mat can, Mat img) {
-	double Amax_area = 0.0;
-	double Atmp_area = 1.0;
+	int Amax_area = 0;
+	int Atmp_area = 1;
 	Point center;
 	vector<vector<Point>> contours;
 	vector<Vec4i> hier;
@@ -268,21 +276,25 @@ Point max_area(Mat can, Mat img) {
 	if (contours.empty()) {
 		return Point(-1, -1);
 	}
+	else if (hier.size() > MAX_OBJECTS) {
+		putText(img, "Too much noise", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
+		return Point(-1, -1);
+	}	
 	//drawContours(img, contours, -1, cv::Scalar(0, 255, 0));
-	vector<Point> max_contour;
+	int max_contour;
 	for (int i = 0; i >= 0; i = hier[i][0]) {
 		Moments moment = moments((Mat)contours[i]);
 		Atmp_area = moment.m00;
-		if (Atmp_area > Amax_area && Atmp_area > (20 * 20)) {
+		if (Atmp_area > Amax_area && Atmp_area > MIN_AREA) {
 			center = Point(moment.m10 / Atmp_area, moment.m01 / Atmp_area);
 			Amax_area = Atmp_area;
-			max_contour = contours[i];
+			max_contour = i;
 		}
 	}
 	if (Amax_area > 0) {
 		Point2f c_enclosing(0.0, 0.0);
 		float radius;
-		minEnclosingCircle(max_contour, c_enclosing, radius);
+		minEnclosingCircle(contours[max_contour], c_enclosing, radius);
 		circle(img, c_enclosing, radius, Scalar(0, 255, 0), 2);
 		return center;
 	}
@@ -294,10 +306,10 @@ Mat filter_color_objects(Mat image, Controls_val* colors) {
 	//Mat tmp_upper;
 	Mat result;
 	//GaussianBlur(image, image, cv::Size(9, 9), 2, 2);
-	inRange(image, cv::Scalar(colors->iLowH, colors->iLowS, colors->iLowV), cv::Scalar(colors->iHighH, colors->iHighS, colors->iHighV), result);
+	inRange(image, Scalar(colors->iLowH, colors->iLowS, colors->iLowV), Scalar(colors->iHighH, colors->iHighS, colors->iHighV), result);
 	//inRange(image, cv::Scalar(160, 100, 100), cv::Scalar(179, 255, 255), tmp_upper);
 	//addWeighted(tmp_lower, 1.0, tmp_upper, 1.0, 0.0, result);
-	GaussianBlur(result, result, cv::Size(9, 9), 2, 2);
+	GaussianBlur(result, result, Size(9, 9), 2, 2);
 	return result;
 }
 

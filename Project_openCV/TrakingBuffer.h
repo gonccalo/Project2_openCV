@@ -6,7 +6,7 @@ class TrakingBuffer {
 public:
 	bool put(Point *p);
 	Point* get(uint index);
-	Mat toMat();
+	void clear();
 
 private:
 	Point *p[32];
